@@ -1,4 +1,4 @@
-const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList, GraphQLInt, GraphQLNonNull, GraphQLID } =require('graphql')
+const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList, GraphQLInt, GraphQLNonNull, GraphQLID, GraphQLScalarType } =require('graphql')
 const authors = require('./localdata/authors.json')
 const books = require('./localdata/books.json')
 const Movies = require('./models/movie')
@@ -73,6 +73,38 @@ const RootMutationType = new GraphQLObjectType({
   name: 'Mutation',
   description: 'Root Mutation',
   fields: () => ({
+    addDirector: {
+      type: DirectorType,
+      description: 'Add a director',
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        age: { type: GraphQLNonNull(GraphQLInt) }
+      },
+      resolve: (parent, args) => {
+        const director = new Directors({
+          name: args.name,
+          age: args.age
+        })
+        return director.save()
+      }
+    },
+    addMovie: {
+      type: MovieType,
+      description: 'Add a movie',
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        genre: { type: GraphQLNonNull(GraphQLString) },
+        directorId: { type: GraphQLNonNull(GraphQLID) }
+      },
+      resolve: (parent, args) => {
+        const movie = new Movies({
+          name: args.name,
+          genre: args.genre,
+          directorId: args.directorId
+        })
+        return movie.save()
+      }
+    }, 
     addBook: {
       type: BookType,
       description: 'Add a book',
@@ -97,6 +129,40 @@ const RootMutationType = new GraphQLObjectType({
         authors.push(author)
         return author
       }      
+    },
+    deleteDirector: {
+      type: DirectorType,
+      description: 'Remove the movie',
+      args: { id: { type: GraphQLNonNull(GraphQLID) } },
+      resolve: (parent, args) => {
+        return Directors.findByIdAndRemove(args.id)
+      }
+    },
+    deleteMovie: {
+      type: MovieType,
+      description: 'Remove the film',
+      args: { id: { type: GraphQLNonNull(GraphQLID) } },
+      resolve: (parent, args) => {
+        return Movies.findByIdAndRemove(args.id)
+      }
+    },
+    //https://www.miramax.com/media/assets/Pulp-Fiction1.png
+    //https://i.insider.com/57867bdf4321f1480f8b7e21?width=600&format=jpeg&auto=webp
+    updateDirector: {
+      type: DirectorType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLNonNull(GraphQLString) },
+        age: { type: GraphQLNonNull(GraphQLInt) },
+        // img: { type: GraphQLNonNull(GraphQLString) }
+      },
+      resolve: (parent, args) => {
+        return Directors.findByIdAndUpdate(
+          args.id,
+          { $set: { name: args.name, age: args.age } },
+          { new: true }
+        )
+      }
     }
   })
 })

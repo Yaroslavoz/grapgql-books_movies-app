@@ -9,7 +9,7 @@
  process = git-lfs filter-process
 
 # dependencies
-/server/node_modules
+/node_modules
 
 
 # testing
