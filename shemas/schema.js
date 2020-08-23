@@ -1,6 +1,15 @@
-const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList, GraphQLInt, GraphQLNonNull } = require('graphql')
-const authors = require('./authors.json')
-const books = require('./books.json')
+const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLList, GraphQLInt, GraphQLNonNull, GraphQLID } =require('graphql')
+const authors = require('./localdata/authors.json')
+const books = require('./localdata/books.json')
+const Movies = require('./models/movie')
+const Directors = require('./models/director')
+
+
+
+// const {RootQueryType} = require('./rootQuery')
+// const {RootMutationType} = require('./rootMutation')
+// const { BookType, AuthorType } = require('./booksTypes')
+// const{ MovieType } = require('./moviesTypes')
 
 const RootQueryType = new GraphQLObjectType({
     name: 'Query',
@@ -10,17 +19,17 @@ const RootQueryType = new GraphQLObjectType({
         type: AuthorType,
         description: 'A Single Author',
         args: {
-          id: { type: GraphQLInt }
+          id: { type: GraphQLID }
         },
-        resolve: (parent, args) => authors.find(author => author.id === args.id)
+        resolve: (parent, args) => authors.find(author => author.id == args.id)
       },
       book: {
         type: BookType,
         description: 'A Single Book',
         args: {
-          id: { type: GraphQLInt }
+          id: { type: GraphQLID }
         },
-        resolve: (parent, args) => books.find(book => book.id === args.id)
+        resolve: (parent, args) => books.find(book => book.id == args.id)
       },
       books: {
         type: new GraphQLList(BookType),
@@ -32,13 +41,31 @@ const RootQueryType = new GraphQLObjectType({
         description: 'List of All Authors',
         resolve: () => authors
       },
+      director: {
+        type: DirectorType,
+        args: {
+          id: { type: GraphQLID }
+        },
+        resolve: (parent, args) => Directors.findById(args.id)
+      },
       movie: {
         type: MovieType,
-        args: { id: { type: GraphQLString }},
-        resolve(parent, args){
-
+        args: {
+          id: { type: GraphQLID }
         },
+        resolve: (parent, args) => Movies.findById(args.id)
+      },
+      movies: {
+        type: new GraphQLList(MovieType),
+        description: 'List of All Movies',
+        resolve: () => Movies.find({})
+      },
+      directors: {
+        type: new GraphQLList(DirectorType),
+        description: 'List of all directors',
+        resolve: () => Directors.find({})
       }
+      
      })
    })
 
@@ -66,7 +93,7 @@ const RootMutationType = new GraphQLObjectType({
         name: { type: GraphQLNonNull(GraphQLString) }
       },
       resolve: (parent, args) => {
-        const author = { id: authors.length + 1, name: args.name }
+        const author = { id: author.length + 1, name: args.name }
         authors.push(author)
         return author
       }      
@@ -78,7 +105,7 @@ const BookType = new GraphQLObjectType({
   name: 'Book',
   description: 'This represents a book written by an author',
   fields: () => ({
-    id: { type: GraphQLNonNull(GraphQLInt) },
+    id: { type: GraphQLNonNull(GraphQLID) },
     name: { type: GraphQLNonNull(GraphQLString)},
     authorId: { type: GraphQLNonNull(GraphQLInt) },
     author: {
@@ -94,7 +121,7 @@ const AuthorType = new GraphQLObjectType({
   name: 'Author',
   description: 'This represents an author of a book',
   fields: () => ({
-    id: { type: GraphQLNonNull(GraphQLInt) },
+    id: { type: GraphQLNonNull(GraphQLID) },
     name: { type: GraphQLNonNull(GraphQLString)},
     books: {
       type: new GraphQLList(BookType),
@@ -105,18 +132,48 @@ const AuthorType = new GraphQLObjectType({
   })
 })
 
+
+//================ movies part =============
+
 const MovieType = new GraphQLObjectType({
   name: 'Movie',
   fields: () => ({
-    id: { type: GraphQLString },
-    name: { type: GraphQLString },
-    genre: { type: GraphQLString },
+    id: { type: GraphQLNonNull(GraphQLID) },
+    name: { type: GraphQLNonNull(GraphQLString) },
+    genre: { type: GraphQLNonNull(GraphQLString) },
+    directorId: {type: GraphQLNonNull(GraphQLInt)},
+    director: {
+      type: DirectorType,
+      resolve: (movie) =>  {
+        // return directors.find(director => director.id === movie.directorId )
+       return Directors.findById(movie.directorId)
+      }
+    }
   }),
 });
 
- const schema = new GraphQLSchema({
+const DirectorType = new GraphQLObjectType({
+  name: 'Director',
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLID) },
+    name: { type: GraphQLNonNull(GraphQLString) },
+    age: { type: GraphQLNonNull(GraphQLInt) },
+    movies: {
+      type: new GraphQLList(MovieType),
+      resolve: (director) => {
+        //return _filter(movie => movie.directorId == director.id)
+        return Movies.find({ directorId: director.id })
+      }
+    }
+  }),
+});
+
+
+module.exports = new GraphQLSchema({
   query: RootQueryType,
   mutation: RootMutationType    
  })
 
- module.exports = schema
+
+
+  
